@@ -1,0 +1,110 @@
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../iron-image/iron-image.html">
+<link rel="import" href="../david-current/david-current.html">
+<link rel="import" href="../david-forecast/david-forecast.html">
+<dom-module id="david-weather">
+    <style>
+        :host{
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: block;
+        }
+        iron-image{
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            background-color:#ffff;
+        }
+    </style>
+    <template>
+        <iron-image sizing="cover" preload src="{{imageSrc}}"></iron-image>
+        <iron-ajax
+            auto
+            handle-as="json"
+            url="http://api.openweathermap.org/data/2.5/weather?lat=38.8794928&lon=-7.0577188&appid=fd4d65d8386eb9615744b6ee392e369f&units=metric&lang=es"
+            on-response="getCurrentData"></iron-ajax>
+        <iron-ajax
+            auto
+            handle-as="json"
+            url="http://api.openweathermap.org/data/2.5/forecast?lat=38.8794928&lon=-7.0577188&appid=fd4d65d8386eb9615744b6ee392e369f&units=metric&lang=es"
+            on-response="getForecastData"></iron-ajax>
+
+        <david-current id="currentWeather"></david-current>
+        <david-forecast id="forecast"></david-forecast>
+    </template>
+</dom-module>
+<script type="text/javascript" src="moment.js"></script>
+<script>
+    Polymer({
+        is:'david-weather',
+        properties:{
+            imageSrc: String
+        },
+        ready: function(){
+
+        },
+        getCurrentData: function(event){
+            console.log(event.detail.response);
+            var response = event.detail.response;
+            this.imageSrc = "../../img/" + response.weather[0].icon + "_bg.jpg";
+            var current = this.$.currentWeather;
+            console.log(current);
+
+            current.temp = Number(response.main.temp.toFixed(1)) + "ºC";
+            current.humidity = Number(response.main.humidity) + "%";
+            current.city = response.name;
+            current.desc = response.weather[0].description;
+           
+        },
+        getForecastData: function(event){
+            console.log(event.detail.response);
+            var response = event.detail.response;
+            var forecast = this.$.forecast;
+            var list = response.list;
+
+            for (var i = 0; i < list.length; i++) {
+                list[i].icon = "img/" + list[i].weather[0].icon + ".png";
+                list[i].desc = this.capitalize(list[i].weather[0].description);
+                list[i].humidity = list[i].main.humidity + "%";
+                list[i].temp_max = Number(list[i].main.temp_max).toFixed(1) + "ºC";
+                list[i].temp_min = Number(list[i].main.temp_min).toFixed(1) + "ºC";
+                var grados = Number(list[i].wind.deg).toFixed(0);
+                list[i].deg = Number(list[i].wind.deg).toFixed(0) + "º";
+                list[i].speed = Number(list[i].wind.speed).toFixed(0) + " Km/h";
+                var dt_txt = list[i].dt_txt;
+                dt_txt = dt_txt.split(" ");
+                list[i].hora =dt_txt[1];
+
+                if(grados <= 5 && grados>=0 || grados<=360 && grados >= 355){
+                    list[i].degimg = "img/0g.png"; 
+                } else if(grados > 5 && grados <= 85){
+                    list[i].degimg = "img/45g.png"; 
+                }else if(grados > 85 && grados <= 95){
+                    list[i].degimg = "img/90g.png"; 
+                }else if(grados > 95 && grados <= 175){
+                    list[i].degimg = "img/135g.png"; 
+                }else if(grados > 175 && grados <= 185){
+                    list[i].degimg = "img/180g.png"; 
+                }else if(grados > 185 && grados <= 265){
+                    list[i].degimg = "img/225g.png"; 
+                }else if(grados > 265 && grados <= 275){
+                    list[i].degimg = "img/270g.png"; 
+                }else if(grados > 275 && grados < 355){
+                    list[i].degimg = "img/315g.png";
+                }else {
+                    list[i].degimg = "img/0g.png"; 
+                }
+                
+
+                var day = moment.unix(Number(list[i].dt));
+                day.locale('es');
+                list[i].date = day.format("dddd DD/MM/YYYY");
+            };
+            forecast.list = list;
+        },
+        capitalize: function(s){
+            return s[0].toUpperCase() + s.slice(1);
+        }
+    });
+</script>
